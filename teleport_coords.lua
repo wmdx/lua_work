@@ -4,19 +4,19 @@ PLUGIN.Author = "Monstrado"
 
 function PLUGIN:Init()
     self.SavedCoordsFile = util.GetDatafile("saved_coords")
-    oxmin_mod = plugins.Find("oxmin")
-    if not oxmin_mod or not oxmin then
-        print("Critical Failure! Oxmin required to run use this plugin")
-        return;
-    end;
-    self.FLAG_TELEPORT = oxmin.strtoflag["canteleport"]
-    self.FLAG_CAN_EDIT_COORDS = oxmin.strtoflag["caneditcoords"]
-    oxmin_mod:AddExternalOxminChatCommand(self, "tpc", {self.FLAG_TELEPORT}, self.cmdTeleportCoords)
-    oxmin_mod:AddExternalOxminChatCommand(self, "tpcs", {self.FLAG_CAN_EDIT_COORDS}, self.cmdSaveCoords)
-    oxmin_mod:AddExternalOxminChatCommand(self, "tpcr", {self.FLAG_CAN_EDIT_COORDS}, self.cmdRemoveCoords)
-    oxmin_mod:AddExternalOxminChatCommand(self, "tpci", {}, self.cmdInfoLocation)
-    oxmin_mod:AddExternalOxminChatCommand(self, "tpcl", {}, self.cmdListLocations)
-    oxmin_mod:AddExternalOxminChatCommand(self, "coords", {}, self.cmdGetCoords)
+	
+	flags_plugin = plugins.Find("flags")
+		if (not flags_plugin) then
+			error("You do not have the Flags plugin installed! Check here: http://forum.rustoxide.com/resources/flags.155/")
+			return
+		end
+
+		flags_plugin:AddFlagsChatCommand(self, "tpc", {"teleport"}, self.cmdTeleportCoords)
+		flags_plugin:AddFlagsChatCommand(self, "tpcs", {"teleport"}, self.cmdSaveCoords)
+		flags_plugin:AddFlagsChatCommand(self, "tpcr", {"teleport"}, self.cmdRemoveCoords)
+		flags_plugin:AddFlagsChatCommand(self, "tpci", {"teleport"}, self.cmdInfoLocation)
+		flags_plugin:AddFlagsChatCommand(self, "tpcl", {"teleport"}, self.cmdListLocation)
+		flags_plugin:AddFlagsChatCommand(self, "coords", {}, self.cmdListLocation)
 
     local json_txt = json.decode(self.SavedCoordsFile:GetText())
     if not json_txt then

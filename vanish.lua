@@ -5,25 +5,19 @@ PLUGIN.Version = "1.2"
 
 
 function PLUGIN:Init()
- self:AddChatCommand( "vanish", self.cmdOn )
- self:AddChatCommand( "unvanish", self.cmdOff )
- self:AddChatCommand( "vanishdev", self.cmdAbout )
 
-  	oxmin_Plugin = plugins.Find("oxmin")
+ flags_plugin = plugins.Find("flags")
+  if (not flags_plugin) then
+  error("You do not have the Flags plugin installed! Check here: http://forum.rustoxide.com/resources/flags.155/")
+  return
+ end
 
-    if not oxmin_Plugin or not oxmin then
-        print("Vanish Flag Not Added! Requires Oxmin")
-        self.oxminInstalled = false
-        return;
-    end;
+flags_plugin:AddFlagsChatCommand(self, "vanish", {"vanish"}, self.cmdOn)
+flags_plugin:AddFlagsChatCommand(self, "unvanish", {"vanish"}, self.cmdOff)
 
-    self.FLAG_VANISH = oxmin.AddFlag("vanish")
-    self.oxminInstalled = true
-	print("Flag Vanish successfully added!")
 end
 
 function PLUGIN:cmdOn( netuser, cmd, args )
-if (netuser:CanAdmin()) or (oxmin_Plugin:HasFlag(netuser, self.FLAG_VANISH, false)) then
 	local helmet = rust.GetDatablockByName( "Invisible Helmet" )
 	local vest = rust.GetDatablockByName( "Invisible Vest" )
 	local pants = rust.GetDatablockByName( "Invisible Pants" )
@@ -35,13 +29,9 @@ if (netuser:CanAdmin()) or (oxmin_Plugin:HasFlag(netuser, self.FLAG_VANISH, fals
 	inv:AddItemAmount( pants, 1, pref )
 	inv:AddItemAmount( boots, 1, pref )
 	rust.Notice( netuser, "You have vanished!" )
-else
-	rust.Notice( netuser, "You must be an admin to use that command!" )
-end
 end
 
 function PLUGIN:cmdOff( netuser, cmd, args )
-if (netuser:CanAdmin()) or (oxmin_Plugin:HasFlag(netuser, self.FLAG_VANISH, false)) then
 	local helmet = rust.GetDatablockByName( "Invisible Helmet" )
 	local vest = rust.GetDatablockByName( "Invisible Vest" )
 	local pants = rust.GetDatablockByName( "Invisible Pants" )
@@ -56,7 +46,4 @@ if (netuser:CanAdmin()) or (oxmin_Plugin:HasFlag(netuser, self.FLAG_VANISH, fals
 	inv:RemoveItem( item3 )
 	inv:RemoveItem( item4 )
 	rust.Notice( netuser, "You have been made visible again!" )
-else
-	rust.Notice( netuser, "You must be an admin to use that command!" )
-end
 end

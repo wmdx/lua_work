@@ -69,19 +69,6 @@ function PLUGIN:Init()
 		if (res) then config.Save( "oxmin" ) end
 	end
 	
-	-- Add chat commands
-	self:AddOxminChatCommand( "kick", { FLAG_CANKICK }, self.cmdKick )
-	self:AddOxminChatCommand( "ban", { FLAG_CANBAN }, self.cmdBan )
-	self:AddOxminChatCommand( "unban", { FLAG_CANBAN }, self.cmdUnban )
-	self:AddOxminChatCommand( "lua", { FLAG_CANLUA }, self.cmdLua )
-	self:AddOxminChatCommand( "god", { FLAG_CANGOD }, self.cmdGod )
-	self:AddOxminChatCommand( "airdrop", { FLAG_CANCALLAIRDROP }, self.cmdAirdrop )
-	self:AddOxminChatCommand( "give", { FLAG_CANGIVE }, self.cmdGive )
-	self:AddOxminChatCommand( "help", { }, self.cmdHelp )
-	self:AddOxminChatCommand( "who", { }, self.cmdWho )
-	self:AddOxminChatCommand( "tp", { FLAG_CANTELEPORT }, self.cmdTeleport )
-	self:AddOxminChatCommand( "bring", { FLAG_CANTELEPORT }, self.cmdBring )
-	self:AddOxminChatCommand( "destroy", { FLAG_CANDESTROY }, self.cmdDestroy )
 	
 	-- Add console commands
 	self:AddCommand( "oxmin", "giveflag", self.ccmdGiveFlag )
@@ -289,16 +276,9 @@ function PLUGIN:OnUserConnect( netuser )
 	if (data.Connects == 1 and self.Config.showwelcomenotice) then
 		rust.Notice( netuser, self.Config.welcomenotice:format( netuser.displayName ), 20.0 )
 	end
-	if (self.Config.showconnectedmessage) then self:BroadcastChat( netuser.displayName .. " has joined the game." ) end
 end
 
--- *******************************************
--- PLUGIN:OnUserDisconnect()
--- Called when a user has disconnected
--- *******************************************
-function PLUGIN:OnUserDisconnect( netuser )
-	if (self.Config.showdisconnectedmessage) then self:BroadcastChat( netuser.displayName .. " has left the game." ) end
-end
+
 
 -- *******************************************
 -- PLUGIN:GetUserData()
@@ -381,8 +361,26 @@ end
 -- Called when an entity take damage
 -- *******************************************
 function PLUGIN:ModifyDamage( takedamage, damage )
-	local char = takedamage:GetComponent( "Character" )
+	local obj = takedamage.gameObject
+	local controllable = takedamage:GetComponent( "Controllable" )
+	if (not controllable) then return end
+	--print( controllable )
+	local netuser = controllable.playerClient.netUser
+	if (not netuser) then return error( "Failed to get net user (ModifyDamage)" ) end
+	local char = rust.GetCharacter( netuser )
+	if (not char) then return error( "Failed to get Character (ModifyDamage)" ) end
+	--local char = obj:GetComponent( "Character" )
 	if (char) then
+		local ct = char:GetType()
+		--[[if (ct.Name == "DamageBeing") then
+			char = char.character
+			print( "Hacky fix, " .. ct.Name .. " is now " .. char:GetType().Name )
+			if (char:GetType().Name == "DamageBeing") then
+				print( "The hacky fix didn't work, it's still a DamageBeing!" )
+				return
+			end
+		end]]
+		--print( ct )
 		local netplayer = char.networkViewOwner
 		if (netplayer) then
 			local netuser = rust.NetUserFromNetPlayer( netplayer )
@@ -395,221 +393,4 @@ function PLUGIN:ModifyDamage( takedamage, damage )
 			end
 		end
 	end
-end
-
--- CHAT COMMANDS --
-function PLUGIN:cmdHelp( netuser, args )
-	for i=1, #self.Config.helptext do
-		rust.SendChatToUser( netuser, self.Config.helptext[i] )
-	end
-	plugins.Call( "SendHelpText", netuser )
-end
-function PLUGIN:cmdWho( netuser, args )
-	rust.SendChatToUser( netuser, "There are " .. tostring( #rust.GetAllNetUsers() ) .. " survivors online." )
-end
-function PLUGIN:cmdKick( netuser, args )
-	if (not args[1]) then
-		rust.Notice( netuser, "Syntax: /kick name" )
-		return
-	end
-	local b, targetuser = rust.FindNetUsersByName( args[1] )
-	if (not b) then
-		if (targetuser == 0) then
-			rust.Notice( netuser, "No players found with that name!" )
-		else
-			rust.Notice( netuser, "Multiple players found with that name!" )
-		end
-		return
-	end
-	local targetname = util.QuoteSafe( targetuser.displayName )
-	self:BroadcastChat( "'" .. targetname .. "' was kicked by '" .. util.QuoteSafe( netuser.displayName ) .. "'!" )
-	rust.Notice( netuser, "\"" .. targetname .. "\" kicked." )
-	targetuser:Kick( NetError.Facepunch_Kick_RCON, true )
-end
-function PLUGIN:cmdBan( netuser, args )
-	if (not args[1]) then
-		rust.Notice( netuser, "Syntax: /ban name" )
-		return
-	end
-	local b, targetuser = rust.FindNetUsersByName( args[1] )
-	if (not b) then
-		if (targetuser == 0) then
-			rust.Notice( netuser, "No players found with that name!" )
-		else
-			rust.Notice( netuser, "Multiple players found with that name!" )
-		end
-		return
-	end
-	local targetname = util.QuoteSafe( targetuser.displayName )
-	self:BroadcastChat( "'" .. targetname .. "' was banned by '" .. util.QuoteSafe( netuser.displayName ) .. "'!" )
-	rust.Notice( netuser, "\"" .. targetname .. "\" banned." )
-	self:GiveFlag( targetuser, FLAG_BANNED )
-	targetuser:Kick( NetError.Facepunch_Kick_Ban, true )
-end
-function PLUGIN:cmdUnban( netuser, args )
-	if (not args[1]) then
-		rust.Notice( netuser, "Syntax: /unban name" )
-		return
-	end
-	local candidates = {}
-	for id, data in pairs( self.Data.Users ) do
-		if (data.Name:match( args[1] )) then
-			candidates[ #candidates + 1 ] = data
-		end
-	end
-	if (#candidates == 0) then
-		rust.Notice( netuser, "No banned users found with that name!" )
-		return
-	elseif (#candidates > 1) then
-		rust.Notice( netuser, "Multiple banned users found with that name!" )
-		return
-	end
-	candidates[1].Flags = {}
-	self:Save()
-	rust.Notice( netuser, util.QuoteSafe( candidates[1].Name ) .. " unbanned." )
-end
-function PLUGIN:cmdTeleport( netuser, args )
-	if (not args[1]) then
-		rust.Notice( netuser, "Syntax: /tp target OR /tp player target" )
-		return
-	end
-	local b, targetuser = rust.FindNetUsersByName( args[1] )
-	if (not b) then
-		if (targetuser == 0) then
-			rust.Notice( netuser, "No players found with that name!" )
-		else
-			rust.Notice( netuser, "Multiple players found with that name!" )
-		end
-		return
-	end
-	if (not args[2]) then
-		-- Teleport netuser to targetuser
-		rust.ServerManagement():TeleportPlayerToPlayer( netuser.networkPlayer, targetuser.networkPlayer )
-		rust.Notice( netuser, "You teleported to '" .. util.QuoteSafe( targetuser.displayName ) .. "'!" )
-	else
-		local b, targetuser2 = rust.FindNetUsersByName( args[2] )
-		if (not b) then
-			if (targetuser2 == 0) then
-				rust.Notice( netuser, "No players found with that name!" )
-			else
-				rust.Notice( netuser, "Multiple players found with that name!" )
-			end
-			return
-		end
-		
-		-- Teleport targetuser to targetuser2
-		rust.ServerManagement():TeleportPlayerToPlayer( targetuser.networkPlayer, targetuser2.networkPlayer )
-		rust.Notice( targetuser, "You were teleported to '" .. util.QuoteSafe( targetuser2.displayName ) .. "'!" )
-		rust.Notice( targetuser2, "'" .. util.QuoteSafe( targetuser.displayName ) .. "' teleported to you!" )
-	end
-end
-function PLUGIN:cmdGod( netuser, args )
-	if (not args[1]) then
-		if (not self:GiveFlag( netuser, FLAG_GODMODE )) then
-			self:TakeFlag( netuser, FLAG_GODMODE )
-		end
-		return
-	end
-	local b, targetuser = rust.FindNetUsersByName( args[1] )
-	if (not b) then
-		if (targetuser == 0) then
-			rust.Notice( netuser, "No players found with that name!" )
-		else
-			rust.Notice( netuser, "Multiple players found with that name!" )
-		end
-		return
-	end
-	local targetname = util.QuoteSafe( targetuser.displayName )
-	if (self:GiveFlag( targetuser, FLAG_GODMODE )) then
-		rust.Notice( netuser, "\"" .. targetname .. "\" now has godmode." )
-	elseif (self:TakeFlag( targetuser, FLAG_GODMODE )) then
-		rust.Notice( netuser, "\"" .. targetname .. "\" no longer has godmode." )
-	end
-end
-function PLUGIN:cmdLua( netuser, args )
-	local code = table.concat( args, " " )
-	local b, res = util.LoadString( code, "Oxmin /lua" )
-	if (not b) then
-		rust.Notice( netuser, res )
-		return
-	end
-	util.BeginCapture()
-	b, res = pcall( res )
-	local log_print, log_err = util.EndCapture()
-	if (not b) then
-		rust.Notice( netuser, res )
-		return
-	end
-	if (#log_err > 0) then
-		rust.Notice( netuser, tostring( #log_err ) .. " error(s) when executing Lua code!", 2.5 )
-		for i=1, #log_err do
-			timer.Once( i * 2.5, function() rust.Notice( netuser, log_err[i], 2.5 ) end )
-		end
-	elseif (#log_print > 0) then
-		for i=1, #log_print do
-			timer.Once( (i - 1) * 2.5, function() rust.Notice( netuser, log_print[i], 2.5 ) end )
-		end
-	else
-		rust.Notice( netuser, "No output from Lua call." )
-	end
-end
-function PLUGIN:cmdAirdrop( netuser, args )
-	rust.Notice( netuser, "Airdrop called!" )
-	rust.CallAirdrop()
-end
-
-local preftype = cs.gettype( "Inventory+Slot+Preference, Assembly-CSharp" )
-local AddItemAmount = util.FindOverloadedMethod( Rust.PlayerInventory, "AddItemAmount", bf.public_instance, { Rust.ItemDataBlock, System.Int32, preftype } )
-function PLUGIN:cmdGive( netuser, args )
-	if (not args[1]) then
-		rust.Notice( netuser, "Syntax: /give itemname {quantity}" )
-		return
-	end
-	local datablock = rust.GetDatablockByName( args[1] )
-	if (not datablock) then
-		rust.Notice( netuser, "No such item!" )
-		return
-	end
-	local amount = tonumber( args[2] ) or 1
-	-- IInventoryItem objA = current.AddItem(byName, Inventory.Slot.Preference.Define(Inventory.Slot.Kind.Default, false, Inventory.Slot.KindFlags.Belt), quantity);
-	local pref = rust.InventorySlotPreference( InventorySlotKind.Default, false, InventorySlotKindFlags.Belt )
-	local controllable = netuser.playerClient.controllable
-	local inv = controllable:GetComponent( "PlayerInventory" )
-	local arr = util.ArrayFromTable( System.Object, { datablock, amount, pref } )
-	--cs.convertandsetonarray( arr, 1, amount, System.Int32._type )
-	util.ArraySet( arr, 1, System.Int32, amount )
-	--util.PrintArray( arr )
-	--print( datablock )
-	--print( pref )
-	--print( amount )
-	--local invitem = inv:AddItem( datablock, pref, amount )
-	if (type( inv.AddItemAmount ) == "string") then
-		print( "AddItemAmount was a string! (inv = " .. tostring( inv ) .. " - " .. (inv and inv:GetType().Name or "") .. ")" )
-		AddItemAmount:Invoke( inv, arr )
-	else
-		inv:AddItemAmount( datablock, amount, pref )
-	end
-	rust.InventoryNotice( netuser, tostring( amount ) .. " x " .. datablock.name )
-end
-
-local RaycastHitDistance = util.GetPropertyGetter( UnityEngine.RaycastHit, "distance" )
-local function TraceEyes( netuser )
-	local controllable = netuser.playerClient.controllable
-	local char = controllable:GetComponent( "Character" )
-	local ray = char.eyesRay
-	local hits = RaycastAll( ray )
-	local tbl = cs.createtablefromarray( hits )
-	if (#tbl == 0) then return end
-	local closest = tbl[1]
-	local closestdist = closest.distance
-	for i=2, #tbl do
-		if (tbl[i].distance < closestdist) then
-			closest = tbl[i]
-			closestdist = closest.distance
-		end
-	end
-	return closest
-end
-function PLUGIN:cmdDestroy( netuser, args )
-	
 end
