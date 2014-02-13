@@ -75,6 +75,7 @@ function PLUGIN:Init()
   -- Flagless commands
   flags_plugin:AddFlagsChatCommand(self, "help", {}, self.cmdHelp)
   flags_plugin:AddFlagsChatCommand(self, "loc", {}, self.cmdLoc)
+  flags_plugin:AddFlagsChatCommand(self, "who", {}, self.cmdWho)
 end
 
 -- *******************************************
@@ -251,28 +252,25 @@ function PLUGIN:cmdAirdrop(netuser, cmd, args)
   end
 end
 
-local preftype = cs.gettype( "Inventory+Slot+Preference, Assembly-CSharp" )
-function PLUGIN:cmdGive( netuser, args )
-	if (not args[1]) then
-		rust.Notice( netuser, "Syntax: /give itemname {quantity}" )
-		return
-	end
-	local datablock = rust.GetDatablockByName( args[1] )
-	if (not datablock) then
-		rust.Notice( netuser, "No such item!" )
-		return
-	end
-	local amount = tonumber( args[2] ) or 1
-	local pref = rust.InventorySlotPreference( InventorySlotKind.Default, false, InventorySlotKindFlags.Belt )
-	local inv = rust.GetInventory( netuser )
-	local arr = util.ArrayFromTable( System.Object, { datablock, amount, pref } )
-	util.ArraySet( arr, 1, System.Int32, amount )
-	if (type( inv.AddItemAmount ) == "string") then
-		print( "AddItemAmount was a string! (inv = " .. tostring( inv ) .. " - " .. (inv and inv:GetType().Name or "") .. ")" )
-	else
-		inv:AddItemAmount( datablock, amount, pref )
-	end
-	rust.InventoryNotice( netuser, tostring( amount ) .. " x " .. datablock.name )
+
+function PLUGIN:cmdGive(netuser, cmd, args)
+  if (not args[1]) then
+    rust.Notice(netuser, "Syntax: /give {itemName} [quantity]")
+    return
+  end
+
+  local datablock = rust.GetDatablockByName(args[1])
+  if (not datablock) then
+    rust.Notice(netuser, "No such item!")
+    return
+  end
+
+  local amount = tonumber(args[2]) or 1
+  local pref = rust.InventorySlotPreference(InventorySlotKind.Default, false, InventorySlotKindFlags.Belt)
+  local inv = rust.GetInventory(netuser)
+
+  inv:AddItemAmount(datablock, amount, pref)
+  rust.InventoryNotice(netuser, tostring(amount) .. " x " .. datablock.name)
 end
 
 

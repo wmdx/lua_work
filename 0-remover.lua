@@ -77,14 +77,14 @@ function PLUGIN:Init()
 	-- self:AddChatCommand("load", self.loadfiles)
 	
 	--self:AddChatCommand("removeactiveplayer", self.RemoveActivePlayer)
-	self:AddChatCommand("removerestoresitems", self.RemoveRestoreItems)
+	--self:AddChatCommand("removerestoresitems", self.RemoveRestoreItems)
 	
-	self:AddChatCommand("RemoveAll", self.ActiveRemoveAdminAll)
-	self:AddChatCommand("removeall", self.ActiveRemoveAdminAll)
+	--self:AddChatCommand("RemoveAll", self.ActiveRemoveAdminAll)
+	--self:AddChatCommand("removeall", self.ActiveRemoveAdminAll)
 	
 	 
-    self:AddChatCommand("RemoveAdmin", self.ActiveRemoveAdmin)
-    self:AddChatCommand("removeadmin", self.ActiveRemoveAdmin)
+    --self:AddChatCommand("RemoveAdmin", self.ActiveRemoveAdmin)
+    --self:AddChatCommand("removeadmin", self.ActiveRemoveAdmin)
 
 	flags_plugin = plugins.Find("flags")
     if (not flags_plugin) then
@@ -92,7 +92,10 @@ function PLUGIN:Init()
         print("Loaded Simple Home without Flags support.")
     end
 
-    flags_plugin:AddFlagsChatCommand(self, "remove", {"remove"}, self.RemoveActivePLayer)
+    flags_plugin:AddFlagsChatCommand(self, "removed", {"remove"}, self.RemoveActivePLayer)
+	flags_plugin:AddFlagsChatCommand(self, "remove", {"remove"}, self.ActiveRemove)
+	flags_plugin:AddFlagsChatCommand(self, "removeadmin", {"removea"}, self.ActiveRemoveAdmin)
+	flags_plugin:AddFlagsChatCommand(self, "removeall", {"removea"}, self.ActiveRemoveAdminAll)
 	
 end
 
@@ -134,7 +137,6 @@ end
 
 TableActivedRemoveAmin = {}
 function PLUGIN:ActiveRemoveAdmin( netuser, cmd, args )
-    if self:GetAdmin(netuser) then
 		local steamID = rust.CommunityIDToSteamID(  tonumber(rust.GetUserID(netuser )))
 
 		if TableActivedRemoveAmin[steamID] then
@@ -144,12 +146,10 @@ function PLUGIN:ActiveRemoveAdmin( netuser, cmd, args )
 			TableActivedRemoveAmin[steamID] = true
 			rust.Notice(netuser, "Remove Actived")
 		end
-	end	
 end
 
 TableActivedRemoveAminAll = {}
 function PLUGIN:ActiveRemoveAdminAll( netuser, cmd, args )
-    if self:GetAdmin(netuser) then
 		local steamID = rust.CommunityIDToSteamID(  tonumber(rust.GetUserID(netuser )))
 
 		if TableActivedRemoveAminAll[steamID] then
@@ -165,7 +165,6 @@ function PLUGIN:ActiveRemoveAdminAll( netuser, cmd, args )
 			varplayer[steamID].RemoveAllactived = true
 			varplayer[steamID].netuser = netuser
 		end
-	end	
 end
 
 -- for reload
@@ -186,16 +185,19 @@ end)
 
 
 function PLUGIN:RemoveActivePlayer( netuser, cmd, args )
-
 		if not self.AllowPlayer then
 			rust.Notice(netuser, "Remove Actived for player")
 			self.AllowPlayer = true
-			
+			Removerconfig = "AllowPlayer = ".. tostring(self.AllowPlayer) .. " \nAllowPlayerGiveItems = ".. tostring(self.AllowPlayerGiveItems) .. ""
+			self:Save()
+			self:LoadConfig()
+		else
+			rust.Notice(netuser, "Remove Disable for player")
+			self.AllowPlayer = false
 			Removerconfig = "AllowPlayer = ".. tostring(self.AllowPlayer) .. " \nAllowPlayerGiveItems = ".. tostring(self.AllowPlayerGiveItems) .. ""
 			self:Save()
 			self:LoadConfig()
 		end
-
 end
 
 function PLUGIN:RemoveRestoreItems( netuser, cmd, args )

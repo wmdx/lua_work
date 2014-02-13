@@ -18,6 +18,7 @@ function PLUGIN:Init()
 		flags_plugin:AddFlagsChatCommand(self, "tpcl", {"teleport"}, self.cmdListLocation)
 		flags_plugin:AddFlagsChatCommand(self, "coords", {}, self.cmdListLocation)
 
+
     local json_txt = json.decode(self.SavedCoordsFile:GetText())
     if not json_txt then
         json_txt = {}
@@ -34,34 +35,6 @@ function PLUGIN:TeleportNetuser(netuser, x, y, z)
     rust.ServerManagement():TeleportPlayer(netuser.playerClient.netPlayer, coords)
 end
 
--- Chat command to return user's coordinates
--- /getcoords [optional:playername]
-function PLUGIN:cmdGetCoords(netuser, args)
-    local b, targetuser
-    -- Check if a player name was specified
-    if args[1] then
-        if not oxmin_mod:HasFlag(netuser, self.FLAG_TELEPORT) then
-            rust.Notice(netuser, "You do not have permission to obtain another player's coordinates")
-            return
-        else
-            b, targetuser = rust.FindNetUsersByName(args[1])
-            if (not b) then
-                if (targetuser == 0) then
-                    rust.Notice(netuser, "No players found with that name!")
-                else
-                    rust.Notice(netuser, "Multiple players found with that name!")
-                end
-                return
-            end
-        end
-    end
-    -- If no player was specified, use netuser
-    if not targetuser then
-        targetuser = netuser
-    end
-    local coords = targetuser.playerClient.lastKnownPosition
-    rust.SendChatToUser( netuser, targetuser.displayName .. "'s Position: {x: " .. coords.x .. ", y: " .. coords.y .. ", z: " .. coords.z .. "}")
-end
 
 function PLUGIN:SaveCoordsFile()
   self.SavedCoordsFile:SetText(json.encode(self.SavedCoords))

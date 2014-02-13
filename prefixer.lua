@@ -36,6 +36,7 @@ function PLUGIN:OnUserChat(netuser, name, msg)
 	if (flags_plugin:(netuser, "vip", true)) then
 		rust.BroadcastChat( "[Donator ] " .. name, msg )
 		return false
+	end
 end
 
 

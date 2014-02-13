@@ -6,11 +6,16 @@ PLUGIN.Author = "Hunter"
 
 function PLUGIN:Init()
 
-	self:AddChatCommand( "adminhelp", self.cmdAdminHelp )
-	self:AddChatCommand( "ar", self.cmdAdminResponse )
-	self:AddChatCommand( "@", self.cmdAdminChat )
+	--self:AddChatCommand( "adminhelp", self.cmdAdminHelp )
+	--self:AddChatCommand( "ar", self.cmdAdminResponse )
+	--self:AddChatCommand( "@", self.cmdAdminChat )
+	flags_plugin = plugins.Find("flags")
+	if (not flags_plugin) then
+	  error("You do not have the flags plugin installed! Check here: http://forum.rustoxide.com/resources/flags.155/")
+	  return
+	end
 	
-	flags_plugin:AddFlagsChatCommand(self, "ahelp", {"admin"}, self.cmdAdminHelp)
+	flags_plugin:AddFlagsChatCommand(self, "ahelp", {}, self.cmdAdminHelp)
 	flags_plugin:AddFlagsChatCommand(self, "ar", {"admin"}, self.cmdAdminResponse)
 	flags_plugin:AddFlagsChatCommand(self, "@", {"admin"}, self.cmdAdminChat)
 	
@@ -26,7 +31,7 @@ function PLUGIN:cmdAdminHelp( netuser, cmd, args )
 	
 	for _, user in pairs( rust.GetAllNetUsers() ) do
 
-		if self:canAdminhelp( user ) then
+		if self:canAdminHelp( user ) then
 			rust.RunClientCommand( user, "chat.add \"@help " .. util.QuoteSafe( netuser.displayName ) .. "\" \"" .. esc_string .. "\"" )
 		end
 		
