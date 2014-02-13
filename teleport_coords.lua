@@ -4,20 +4,19 @@ PLUGIN.Author = "Monstrado"
 
 function PLUGIN:Init()
     self.SavedCoordsFile = util.GetDatafile("saved_coords")
-	
-	flags_plugin = plugins.Find("flags")
-		if (not flags_plugin) then
-			error("You do not have the Flags plugin installed! Check here: http://forum.rustoxide.com/resources/flags.155/")
-			return
-		end
-
-		flags_plugin:AddFlagsChatCommand(self, "tpc", {"teleport"}, self.cmdTeleportCoords)
-		flags_plugin:AddFlagsChatCommand(self, "tpcs", {"teleport"}, self.cmdSaveCoords)
-		flags_plugin:AddFlagsChatCommand(self, "tpcr", {"teleport"}, self.cmdRemoveCoords)
-		flags_plugin:AddFlagsChatCommand(self, "tpci", {"teleport"}, self.cmdInfoLocation)
-		flags_plugin:AddFlagsChatCommand(self, "tpcl", {"teleport"}, self.cmdListLocation)
-		flags_plugin:AddFlagsChatCommand(self, "coords", {}, self.cmdListLocation)
-
+    oxmin_mod = plugins.Find("oxmin")
+    if not oxmin_mod or not oxmin then
+        print("Critical Failure! Oxmin required to run use this plugin")
+        return;
+    end;
+    self.FLAG_TELEPORT = oxmin.strtoflag["canteleport"]
+    self.FLAG_CAN_EDIT_COORDS = oxmin.strtoflag["caneditcoords"]
+    oxmin_mod:AddExternalOxminChatCommand(self, "tpc", {self.FLAG_TELEPORT}, self.cmdTeleportCoords)
+    oxmin_mod:AddExternalOxminChatCommand(self, "tpcs", {self.FLAG_CAN_EDIT_COORDS}, self.cmdSaveCoords)
+    oxmin_mod:AddExternalOxminChatCommand(self, "tpcr", {self.FLAG_CAN_EDIT_COORDS}, self.cmdRemoveCoords)
+    oxmin_mod:AddExternalOxminChatCommand(self, "tpci", {}, self.cmdInfoLocation)
+    oxmin_mod:AddExternalOxminChatCommand(self, "tpcl", {}, self.cmdListLocations)
+    oxmin_mod:AddExternalOxminChatCommand(self, "coords", {}, self.cmdGetCoords)
 
     local json_txt = json.decode(self.SavedCoordsFile:GetText())
     if not json_txt then
@@ -35,6 +34,34 @@ function PLUGIN:TeleportNetuser(netuser, x, y, z)
     rust.ServerManagement():TeleportPlayer(netuser.playerClient.netPlayer, coords)
 end
 
+-- Chat command to return user's coordinates
+-- /getcoords [optional:playername]
+function PLUGIN:cmdGetCoords(netuser, args)
+    local b, targetuser
+    -- Check if a player name was specified
+    if args[1] then
+        if not oxmin_mod:HasFlag(netuser, self.FLAG_TELEPORT) then
+            rust.Notice(netuser, "You do not have permission to obtain another player's coordinates")
+            return
+        else
+            b, targetuser = rust.FindNetUsersByName(args[1])
+            if (not b) then
+                if (targetuser == 0) then
+                    rust.Notice(netuser, "No players found with that name!")
+                else
+                    rust.Notice(netuser, "Multiple players found with that name!")
+                end
+                return
+            end
+        end
+    end
+    -- If no player was specified, use netuser
+    if not targetuser then
+        targetuser = netuser
+    end
+    local coords = targetuser.playerClient.lastKnownPosition
+    rust.SendChatToUser( netuser, targetuser.displayName .. "'s Position: {x: " .. coords.x .. ", y: " .. coords.y .. ", z: " .. coords.z .. "}")
+end
 
 function PLUGIN:SaveCoordsFile()
   self.SavedCoordsFile:SetText(json.encode(self.SavedCoords))
