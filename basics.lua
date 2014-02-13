@@ -1,18 +1,17 @@
 PLUGIN.Title = "Basics"
 PLUGIN.Description = "Provides basic and essential admin funcitonality."
 PLUGIN.Author = "eDeloa"
-PLUGIN.Version = "1.1.6"
+PLUGIN.Version = "1.2.0"
 
 print(PLUGIN.Title .. " (" .. PLUGIN.Version .. ") plugin loaded")
 
 --[[
-
 Command           Required Flag
 ----------------------------
 /kick             kick
 /ban              ban
 /unban            unban
-/tp               teleport
+/tp               teleportairdrop
 /give             give
 /god              godmode
 /lua              lua
@@ -22,6 +21,7 @@ Command           Required Flag
 
 /help             <no flag required>
 /loc              <no flag required>
+/who              <no flag required>
 
 Reserved Slot     reserved
 Godmode Enabled   hasgodmode
@@ -83,7 +83,7 @@ end
 -- *******************************************
 function PLUGIN:cmdKick(netuser, cmd, args)
   if (not args[1]) then
-    rust.Notice(netuser, "Syntax: /kick name")
+    rust.Notice(netuser, "Syntax: /kick {playerName}")
     return
   end
   local b, targetuser = rust.FindNetUsersByName(args[1])
@@ -103,59 +103,66 @@ end
 
 function PLUGIN:cmdBan(netuser, cmd, args)
   if (not args[1]) then
-    rust.Notice(netuser, "Syntax: /ban name")
+    rust.Notice(netuser, "Syntax: /ban {playerName} or /ban {steam64}")
     return
   end
   local b, targetuser = rust.FindNetUsersByName(args[1])
   if (not b) then
     if (targetuser == 0) then
-      rust.Notice(netuser, "No players found with that name!")
+      if (not self:IsValidSteam64(args[1])) then
+        rust.Notice(netuser, "No players found with that name!")
+        return
+      end
     else
       rust.Notice(netuser, "Multiple players found with that name!")
+      return
     end
-    return
   end
 
-  self:BanUser(targetuser)
-  
-  local targetname = util.QuoteSafe(targetuser.displayName)
-  rust.BroadcastChat(self.Config.chatname, "'" .. targetname .. "' was banned by '" .. util.QuoteSafe(netuser.displayName) .. "'!")
-  rust.Notice(netuser, "\"" .. targetname .. "\" banned.")
-
-  targetuser:Kick(NetError.Facepunch_Kick_Ban, true)
+  if (b) then
+    self:BanUser(targetuser)
+    local targetname = util.QuoteSafe(targetuser.displayName)
+    rust.BroadcastChat(self.Config.chatname, "'" .. targetname .. "' was banned by '" .. util.QuoteSafe(netuser.displayName) .. "'!")
+    rust.Notice(netuser, "\"" .. targetname .. "\" banned.")
+    targetuser:Kick(NetError.Facepunch_Kick_Ban, true)
+  else
+    self:BanUserSteam64(args[1], "")
+    rust.BroadcastChat(self.Config.chatname, "Player (Steam64: " .. args[1] .. ") was banned by '" .. util.QuoteSafe(netuser.displayName) .. "'!")
+    rust.Notice(netuser, "Player (Steam64: " .. args[1] .. ") banned.")
+  end
 end
 
 function PLUGIN:cmdUnban(netuser, cmd, args)
   if (not args[1]) then
-    rust.Notice(netuser, "Syntax: /unban name")
+    rust.Notice(netuser, "Syntax: /unban {playerName} or /unban {steam64}")
     return
   end
 
   local count = 0
   local steamid
   for id, data in pairs(self.BanData.BannedUsers) do
-    if (data.Name:match(args[1])) then
+    if (data.Name:match(args[1]) or (self:IsValidSteam64(args[1]) and data.SteamID == args[1])) then
       count = count + 1
-      steamid = data.SteamID or data.steamID
+      steamid = data.SteamID or data.steamID -- Kept "steamID" to be backward-compatible with previous banfile formats
     end
   end
 
   if (count == 0) then
-    rust.Notice(netuser, "No banned users found with that name!")
+    rust.Notice(netuser, "No bans found with that information!")
     return
   elseif (count > 1) then
-    rust.Notice(netuser, "Multiple banned users found with that name!")
+    rust.Notice(netuser, "Multiple bans found with that information!")
     return
   end
 
-  rust.Notice(netuser, self.BanData.BannedUsers[steamid].Name .. " unbanned.")
   self.BanData.BannedUsers[steamid] = nil
+  rust.Notice(netuser, "Successfully unbanned user.")
   self:SaveBans()
 end
 
 function PLUGIN:cmdTeleport(netuser, cmd, args)
   if (not args[1]) then
-    rust.Notice(netuser, "Syntax: /tp target OR /tp player target")
+    rust.Notice(netuser, "Syntax: /tp {targetName} OR /tp {playerName} {targetName}")
     return
   end
   local b, targetuser = rust.FindNetUsersByName(args[1])
@@ -185,12 +192,13 @@ function PLUGIN:cmdTeleport(netuser, cmd, args)
     -- Teleport targetuser to targetuser2
     rust.ServerManagement():TeleportPlayerToPlayer(targetuser.networkPlayer, targetuser2.networkPlayer)
     rust.Notice(targetuser, "You were teleported to '" .. util.QuoteSafe(targetuser2.displayName) .. "'!")
+    rust.Notice(targetuser2, "'" .. util.QuoteSafe(targetuser.displayName) .. "' teleported to you!")
   end
 end
 
 function PLUGIN:cmdGod(netuser, cmd, args)
   if (not args[1]) then
-    rust.Notice(netuser, "Syntax: /god target")
+    rust.Notice(netuser, "Syntax: /god {targetName}")
     return
   end
   
@@ -252,7 +260,7 @@ function PLUGIN:cmdAirdrop(netuser, cmd, args)
   end
 end
 
-
+-- Borrowed from Oxmin
 function PLUGIN:cmdGive(netuser, cmd, args)
   if (not args[1]) then
     rust.Notice(netuser, "Syntax: /give {itemName} [quantity]")
@@ -273,7 +281,6 @@ function PLUGIN:cmdGive(netuser, cmd, args)
   rust.InventoryNotice(netuser, tostring(amount) .. " x " .. datablock.name)
 end
 
-
 -- Borrowed from "Broadcast" plugin
 function PLUGIN:cmdNotice(netuser, cmd, args)
   local message = table.concat(args, " ")
@@ -289,11 +296,22 @@ function PLUGIN:cmdSave(netuser, cmd, args)
   rust.Notice(netuser, "Successfully saved the server.")
 end
 
+function PLUGIN:cmdHelp(netuser, cmd, args)
+  for i=1, #self.Config.helptext do
+    rust.SendChatToUser(netuser, self.Config.chatname, self.Config.helptext[i])
+  end
+  plugins.Call("SendHelpText", netuser)
+end
+
 function PLUGIN:cmdLoc(netuser, cmd, args)
   local coords = self:GetUserCoordinates(netuser)
   if (coords ~= nil) then
     rust.SendChatToUser(netuser, self.Config.chatname, "Your coordinates are: " .. coords.x ..  "-x, " .. coords.y .. "-y, " .. coords.z .. "-z")
   end
+end
+
+function PLUGIN:cmdWho(netuser, cmd, args)
+  rust.SendChatToUser(netuser, self.Config.chatname, "There are " .. tostring(#rust.GetAllNetUsers()) .. " survivors online.")
 end
 
 -- *******************************************
@@ -383,13 +401,24 @@ function PLUGIN:ModifyDamage(takedamage, damage)
     return
   end
 
-  if (takedamage:GetComponent("HumanController")) then
-    if (damage.victim and damage.victim.client) then
-      local victim = damage.victim.client.netUser
-      if (victim) then
-        if (flags_plugin:HasActualFlag(victim, "hasgodmode")) then
-          damage.amount = 0
-          return damage
+  local obj = takedamage.gameObject
+  local controllable = takedamage:GetComponent("Controllable")
+  if (not controllable) then
+    return
+  end
+
+  local netuser = controllable.playerClient.netUser
+  if (netuser) then
+    local char = rust.GetCharacter(netuser)
+    if (char) then
+      local netplayer = char.networkViewOwner
+      if (netplayer) then
+        local netuser = rust.NetUserFromNetPlayer(netplayer)
+        if (netuser) then
+          if (flags_plugin:HasActualFlag(netuser, "hasgodmode")) then
+            damage.amount = 0
+            return damage
+          end
         end
       end
     end
@@ -424,19 +453,23 @@ function PLUGIN:LoadDefaultConfig()
   self.Config.helptext =
   {
     "Welcome to the server!",
-    "Type /help for a list of commands.",
-    "Type /loc to get your current location."
+    "Use /help for a list of commands.",
+    "Use /loc to get your current location.",
+    "Use /who to see how many players are online."
   }
 end
 
 function PLUGIN:BanUser(netuser)
   local userName = util.QuoteSafe(netuser.displayName)
   local userID = tonumber(rust.GetUserID(netuser))
-  local steamID = self:SteamIDToSteam64(self:CommunityIDToSteamIDFix(userID))
+  local steam64 = self:SteamIDToSteam64(self:CommunityIDToSteamIDFix(userID))
+  self:BanUserSteam64(steam64, userName)
+end
 
-  self.BanData.BannedUsers[steamID] = {}
-  self.BanData.BannedUsers[steamID].Name = userName
-  self.BanData.BannedUsers[steamID].SteamID = steamID
+function PLUGIN:BanUserSteam64(steam64, name)
+  self.BanData.BannedUsers[steam64] = {}
+  self.BanData.BannedUsers[steam64].SteamID = steam64
+  self.BanData.BannedUsers[steam64].Name = name
   self:SaveBans()
 end
 
@@ -499,4 +532,8 @@ function PLUGIN:GetUserCoordinates(netuser)
   end
 
   return nil
+end
+
+function PLUGIN:IsValidSteam64(input)
+  return ((not input:match("%a")) and (tonumber(input) > 76561197960265728))
 end
