@@ -1,7 +1,7 @@
 PLUGIN.Title = "Basics"
 PLUGIN.Description = "Provides basic and essential admin funcitonality."
 PLUGIN.Author = "eDeloa"
-PLUGIN.Version = "1.2.0"
+PLUGIN.Version = "1.2.1"
 
 print(PLUGIN.Title .. " (" .. PLUGIN.Version .. ") plugin loaded")
 
@@ -322,17 +322,20 @@ end
 -- PLUGIN:CanClientLogin()
 -- Saves the player data to file
 -- *******************************************
-local SteamIDField = util.GetFieldGetter(RustFirstPass.SteamLogin, "SteamID", true)
+--local SteamIDField = util.GetFieldGetter(RustFirstPass.SteamLogin, "SteamID", true)
+local SteamIDField = util.GetFieldGetter(RustFirstPass.ClientConnection, "UserID", true)
 --local PlayerClientAll = util.GetStaticPropertyGetter(RustFirstPass.PlayerClient, "All")
 --local serverMaxPlayers = util.GetStaticFieldGetter(RustFirstPass.server, "maxplayers")
-function PLUGIN:CanClientLogin(login)
+--function PLUGIN:CanClientLogin(login)
+function PLUGIN:CanClientLogin(approval, connection)
   if (not flags_plugin) then
     error("This plugin requires Flags to be installed! Check here: http://forum.rustoxide.com/resources/flags.155")
     return
   end
   
   -- Find the player's steamID
-  local userID = tostring(SteamIDField(login.SteamLogin))
+  --local userID = tostring(SteamIDField(login.SteamLogin))
+  local userID = tostring(SteamIDField(connection))
   local steamID = self:SteamIDToSteam64(self:CommunityIDToSteamIDFix(userID))
 
   if (self:IsUserBanned(steamID)) then
@@ -380,9 +383,15 @@ end
 -- PLUGIN:OnUserDisconnect()
 -- Called when a user has disconnected
 -- *******************************************
-function PLUGIN:OnUserDisconnect(netuser)
+--function PLUGIN:OnUserDisconnect(netuser)
+function PLUGIN:OnUserDisconnect(networkplayer)
   if (not flags_plugin) then
     error("This plugin requires Flags to be installed! Check here: http://forum.rustoxide.com/resources/flags.155")
+    return
+  end
+
+  local netuser = networkplayer:GetLocalData()
+  if (not netuser or netuser:GetType().Name ~= "NetUser") then
     return
   end
   
@@ -401,26 +410,33 @@ function PLUGIN:ModifyDamage(takedamage, damage)
     return
   end
 
-  local obj = takedamage.gameObject
   local controllable = takedamage:GetComponent("Controllable")
   if (not controllable) then
     return
   end
 
-  local netuser = controllable.playerClient.netUser
-  if (netuser) then
-    local char = rust.GetCharacter(netuser)
-    if (char) then
-      local netplayer = char.networkViewOwner
-      if (netplayer) then
-        local netuser = rust.NetUserFromNetPlayer(netplayer)
-        if (netuser) then
-          if (flags_plugin:HasActualFlag(netuser, "hasgodmode")) then
-            damage.amount = 0
-            return damage
+  if (controllable.playerClient) then
+    local netuser = controllable.playerClient.netUser
+    if (netuser) then
+      if (flags_plugin:HasActualFlag(netuser, "hasgodmode")) then
+        damage.amount = 0
+        return damage
+      else
+        return
+      end
+      --[[local char = rust.GetCharacter(netuser)
+      if (char) then
+        local netplayer = char.networkViewOwner
+        if (netplayer) then
+          local netuser = rust.NetUserFromNetPlayer(netplayer)
+          if (netuser) then
+            if (flags_plugin:HasActualFlag(netuser, "hasgodmode")) then
+              damage.amount = 0
+              return damage
+            end
           end
         end
-      end
+      end]]
     end
   end
 end

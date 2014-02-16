@@ -76,7 +76,3 @@ end
     end
   
 end
-
-function PLUGIN:SendHelpText( netuser )
-	rust.SendChatToUser( netuser, "Use /sethome to set your home point & /home to return home" )
-end

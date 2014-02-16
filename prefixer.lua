@@ -25,16 +25,16 @@ function PLUGIN:OnUserChat(netuser, name, msg)
 	if (msg == "/prefix") then
 	return false
 	end
-	if (flags_plugin:HasFlags(netuser, "admin", true)) then
+	if (flags_plugin:HasFlag(netuser, "admin")) then
 		rust.BroadcastChat( "[Admin] " .. name, msg )
 		return false
 	end
-	if (flags_plugin:HasFlags(netuser, "mod", true)) then
+	if (flags_plugin:HasFlag(netuser, "mod")) then
 		rust.BroadcastChat( "[Mod] " .. name, msg )
 		return false
 	end
-	if (flags_plugin:HasFlags(netuser, "vip", true)) then
-		rust.BroadcastChat( "[Donator ] " .. name, msg )
+	if (flags_plugin:HasFlag(netuser, "vip")) then
+		rust.BroadcastChat( "[Donator] " .. name, msg )
 		return false
 	end
 end

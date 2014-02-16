@@ -1,7 +1,7 @@
 PLUGIN.Title = "Flags"
 PLUGIN.Description = "Easily handle what users and groups can and can not do."
 PLUGIN.Author = "eDeloa"
-PLUGIN.Version = "1.2.1"
+PLUGIN.Version = "1.2.2"
 
 print(PLUGIN.Title .. " (" .. PLUGIN.Version .. ") plugin loaded")
 
@@ -630,7 +630,7 @@ function PLUGIN:GroupHasFlag(groupname, flag)
   groupname = string.lower(self:TrimString(groupname))
   local flagsData = self.FlagData.Groups[groupname].Flags
   for i = 1, #flagsData do
-    if (flagsData[i] == flag) then
+    if (flagsData[i] == flag or flagsData[i] == "rcon") then
       return true
     end
   end

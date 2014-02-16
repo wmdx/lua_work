@@ -11,11 +11,11 @@ function PLUGIN:Init()
 			return
 		end
 
-		flags_plugin:AddFlagsChatCommand(self, "tpc", {"teleport"}, self.cmdTeleportCoords)
-		flags_plugin:AddFlagsChatCommand(self, "tpcs", {"teleport"}, self.cmdSaveCoords)
-		flags_plugin:AddFlagsChatCommand(self, "tpcr", {"teleport"}, self.cmdRemoveCoords)
-		flags_plugin:AddFlagsChatCommand(self, "tpci", {"teleport"}, self.cmdInfoLocation)
-		flags_plugin:AddFlagsChatCommand(self, "tpcl", {"teleport"}, self.cmdListLocation)
+		flags_plugin:AddFlagsChatCommand(self, "tpc", {"teleporta"}, self.cmdTeleportCoords)
+		flags_plugin:AddFlagsChatCommand(self, "tpcs", {"teleporta"}, self.cmdSaveCoords)
+		flags_plugin:AddFlagsChatCommand(self, "tpcr", {"teleporta"}, self.cmdRemoveCoords)
+		flags_plugin:AddFlagsChatCommand(self, "tpci", {"teleporta"}, self.cmdInfoLocation)
+		flags_plugin:AddFlagsChatCommand(self, "tpcl", {"teleporta"}, self.cmdListLocation)
 		flags_plugin:AddFlagsChatCommand(self, "coords", {}, self.cmdListLocation)
 
 
@@ -43,7 +43,7 @@ end
 
 -- Save coordinates by name
 -- /tpcs <x> <y> <z> <name>
-function PLUGIN:cmdSaveCoords(netuser, args)
+function PLUGIN:cmdSaveCoords(netuser, cmd, args)
     syntax = "Syntax: /tpcs [name] [optional:description]"
     if (#args < 1) then
         rust.Notice(netuser, syntax)
@@ -90,7 +90,7 @@ function PLUGIN:cmdSaveCoords(netuser, args)
 end
 
 -- Remove coordinates by name
-function PLUGIN:cmdRemoveCoords(netuser, args)
+function PLUGIN:cmdRemoveCoords(netuser, cmd, args)
     syntax = "Syntax: /tpcr [name]"
     local nameOfLocation = args[1]
     if not nameOfLocation then
@@ -116,7 +116,7 @@ end
 
 -- Chat command to teleport user to a set of coordinates
 -- /tpc <playername> <x coord> <y coord> <z coord>
-function PLUGIN:cmdTeleportCoords(netuser, args) 
+function PLUGIN:cmdTeleportCoords(netuser, cmd, args) 
     local syntax = "Syntax: /tpc [location] or /tpc [player] [location]"
     if not args[1] then
         rust.Notice(netuser, syntax)
@@ -163,7 +163,7 @@ function PLUGIN:cmdTeleportCoords(netuser, args)
     end
 end
 
-function PLUGIN:cmdInfoLocation(netuser, args) 
+function PLUGIN:cmdInfoLocation(netuser, cmd, args) 
     local nameOfLocation = args[1]
     if not nameOfLocation then
         rust.Notice(netuser, "Syntax: /tpci [name of location]")
@@ -190,7 +190,7 @@ function PLUGIN:GetSavedCoordsSize()
     return count
 end
 
-function PLUGIN:cmdListLocations(netuser, locations) 
+function PLUGIN:cmdListLocations(netuser, cmd, locations) 
     if (self:GetSavedCoordsSize() == 0) then
         rust.Notice(netuser, "No locations saved, use /tpcs to add your current location"   )
         return
