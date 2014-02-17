@@ -70,8 +70,8 @@ function PLUGIN:notifyDeath(message)
 	for _, netuser in pairs( rust.GetAllNetUsers() ) do
 		if (flags_plugin:HasFlag( netuser, "death")) then rust.SendChatToUser( netuser, message ) end
 		
-	print(message) end
-	
+	end
+	print (message)
 	table.insert( fileLog.text, getTimeOrDate() .. " " .. message)
 	fileLog.save()
 		
@@ -112,10 +112,10 @@ function PLUGIN:OnKilled(takedamage, damage)
 				aAv = damage.attacker.client.netUser:LoadAvatar()
 				vAv = damage.victim.client.netUser:LoadAvatar()
 				local dist = self:DistanceFromPlayers(vAv.pos,aAv.pos) 
-				rust.InventoryNotice(damage.attacker.client.netUser, "Distance: " .. tostring(math.floor(dist)))
+				
 						
 					if _GetNiceName(damage.bodyPart) ~= nil then
-						bodyMsg = attackerName .. " killed " .. damage.victim.client.netUser.displayName ..  weaponMsg .. " with a shot to their " .. _GetNiceName(damage.bodyPart) .. "from: " .. tostring(math.floor(dist)) .. "m"
+						bodyMsg = attackerName .. " killed " .. damage.victim.client.netUser.displayName ..  weaponMsg .. " with a shot to their " .. _GetNiceName(damage.bodyPart) .. " from: " .. tostring(math.floor(dist)) .. "m"
 					else
 						bodyMsg = ""
 					end
@@ -123,7 +123,7 @@ function PLUGIN:OnKilled(takedamage, damage)
 				if bodyMsg then
 					self:notifyDeath(bodyMsg)
 				else
-					self:notifyDeath(attackerName .. " killed " .. victimName ..  weaponMsg .. "from" .. tostring(math.floor(dist)) .. "m")
+					self:notifyDeath(attackerName .. " killed " .. victimName ..  weaponMsg .. " from" .. tostring(math.floor(dist)) .. "m")
 				end
 				return
 			end

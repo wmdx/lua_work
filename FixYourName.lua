@@ -10,8 +10,12 @@ function PLUGIN:Init()
 	self.AllowBannedCharacters = false -- Why would you enable this? IDK. But now you can.
 	
 	  
-	oxminPlugin = cs.findplugin("oxmin")
-	FLAG_CANTAKENAME = oxmin.AddFlag("cantakename")
+	flags_plugin = plugins.Find("flags")
+	if (not flags_plugin) then
+	  error("You do not have the flags plugin installed! Check here: http://forum.rustoxide.com/resources/flags.155/")
+	  return
+	end
+	
 end
  
 function isNumCode( num )
@@ -65,7 +69,7 @@ function PLUGIN:OnUserConnect( netuser )
 		if self.ReportToChat then rust.BroadcastChat( name .. " has been kicked ( Color code ) " ) end
 		netuser:Kick( NetError.Facepunch_Kick_RCON, true )
 	elseif nameDuplicate then
-		if oxminPlugin:HasFlag( netuser, FLAG_CANTAKENAME ) or oxminPlugin:HasFlag( netuser, oxmin.strtoflag["cankick"] ) or oxminPlugin:HasFlag( netuser, oxmin.strtoflag["canban"] ) then
+		if (flags_plugin:HasFlag( netuser, "death")) then
 			rust.Notice( duplicateUser, "Kicked: Name has been claimed" )
 			if self.ReportToChat then rust.BroadcastChat( duplicateUser.displayName .. " has been kicked ( Name has been claimed ) " ) end
 			duplicateUser:Kick( NetError.Facepunch_Kick_RCON, true )
