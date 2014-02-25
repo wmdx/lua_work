@@ -37,7 +37,7 @@ end
 
 
 function PLUGIN: Init()
-	print("Loading Base Alarm")
+
 	
 		fileLog.file = util.GetDatafile("RaidLog " .. getTimeOrDate(true))
 		local logText = fileLog.file:GetText()

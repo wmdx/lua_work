@@ -53,11 +53,12 @@ function PLUGIN:Home( netuser, cmd, args )
 
         local coords = netuser.playerClient.lastKnownPosition;
         coords.x = self.SavedCoords[netuserID].x
-        coords.y = self.SavedCoords[netuserID].y + 5
+        coords.y = self.SavedCoords[netuserID].y + 3
         coords.z = self.SavedCoords[netuserID].z
         rust.Notice( netuser, "Teleporting to your home a few seconds - please wait.")
         timer.Once( hometimer, function()
             rust.ServerManagement():TeleportPlayer(netuser.playerClient.netPlayer, coords);
+			rust.ServerManagement():TeleportPlayer(netuser.playerClient.netPlayer, coords);
             rust.Notice(netuser,"You have been teleported to your home!")
         	end)
     	else

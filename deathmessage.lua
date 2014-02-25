@@ -71,7 +71,6 @@ function PLUGIN:notifyDeath(message)
 		if (flags_plugin:HasFlag( netuser, "death")) then rust.SendChatToUser( netuser, message ) end
 		
 	end
-	print (message)
 	table.insert( fileLog.text, getTimeOrDate() .. " " .. message)
 	fileLog.save()
 		
@@ -132,7 +131,6 @@ function PLUGIN:OnKilled(takedamage, damage)
 				local suicideMsg
 				suicideMsg = " has commited suicide" 
 				
-				self:notifyDeath(damage.attacker.client.netUser.displayName .. " ".. suicideMsg)
 				return
 			end
 		end
